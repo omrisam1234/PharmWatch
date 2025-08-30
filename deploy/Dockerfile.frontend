@@ -1,0 +1,19 @@
+# ---- build the Vite app ----
+FROM node:20-alpine AS build
+WORKDIR /app
+
+COPY pharm-frontend/package*.json ./
+RUN npm ci
+
+# pass API base at build time (optional—see compose args)
+ARG VITE_API_BASE
+ENV VITE_API_BASE=$VITE_API_BASE
+
+COPY pharm-frontend/ .
+RUN npm run build
+
+# ---- serve with nginx ----
+FROM nginx:1.27-alpine
+COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/dist /usr/share/nginx/html
+EXPOSE 80

@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+venv/
+.venv/
+
+# SQLite DB
+*.db
+*.sqlite
+
+# Node
+node_modules/
+dist/
+
+# Docker
+*.log

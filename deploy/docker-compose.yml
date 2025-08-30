@@ -1,0 +1,56 @@
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    container_name: sp-api
+    environment:
+      - SPHARM_DB=/data/superpharm.db
+    volumes:
+      - sp_db:/data
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.frontend
+      args:
+        # Make sure your React code uses: import.meta.env.VITE_API_BASE || "http://localhost:8000"
+        VITE_API_BASE: "http://localhost:8000"
+    container_name: sp-web
+    ports:
+      - "8080:80"   # open http://localhost:8080
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # optional: a very simple once-a-day pipeline runner
+  scheduler:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    container_name: sp-scheduler
+    environment:
+      - SPHARM_DB=/data/superpharm.db
+      - BRANCH_NAME=סופר-פארם קרית אתא
+      - STORE_ID=072
+    command: >
+          bash -lc '
+            echo "[scheduler] first run: $(date -Is)";
+            python sp_pipeline.py --db /data/superpharm.db --branch "$BRANCH_NAME" --store-id "$STORE_ID" || true;
+            while true; do
+              echo "[scheduler] sleeping…"; sleep 86400;
+              echo "[scheduler] next run: $(date -Is)";
+              python sp_pipeline.py --db /data/superpharm.db --branch "$BRANCH_NAME" --store-id "$STORE_ID" || true;
+            done
+          '
+    volumes:
+      - sp_db:/data
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  sp_db:
